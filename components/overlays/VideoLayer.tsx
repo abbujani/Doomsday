@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useExperience } from "@/lib/store";
 import { ASSETS } from "@/lib/constants";
 import { primeElement, setVideoEl } from "@/lib/videos";
 
@@ -12,6 +13,10 @@ import { primeElement, setVideoEl } from "@/lib/videos";
  * sits on top as a transparent layer.
  */
 export default function VideoLayer() {
+  const marvelBlobUrl = useExperience((s) => s.marvelBlobUrl);
+  const heroBlobUrl = useExperience((s) => s.heroBlobUrl);
+  const finaleBlobUrl = useExperience((s) => s.finaleBlobUrl);
+
   const marvelRef = useRef<HTMLVideoElement>(null);
   const heroRef = useRef<HTMLVideoElement>(null);
   const finaleRef = useRef<HTMLVideoElement>(null);
@@ -62,7 +67,7 @@ export default function VideoLayer() {
       <video
         ref={marvelRef}
         className="cover-video"
-        src={ASSETS.marvelVideo}
+        src={marvelBlobUrl || undefined}
         poster={ASSETS.marvelPoster}
         preload="auto"
         muted
@@ -72,7 +77,7 @@ export default function VideoLayer() {
       <video
         ref={heroRef}
         className="cover-video"
-        src={ASSETS.heroVideo}
+        src={heroBlobUrl || undefined}
         poster={ASSETS.heroPoster}
         preload="auto"
         muted
@@ -82,7 +87,7 @@ export default function VideoLayer() {
       <video
         ref={finaleRef}
         className="cover-video"
-        src={ASSETS.finaleVideo}
+        src={finaleBlobUrl || undefined}
         poster={ASSETS.finalePoster}
         preload="auto"
         muted

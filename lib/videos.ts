@@ -54,3 +54,65 @@ export function scrubEl(el: HTMLVideoElement | null, t: number) {
     el.currentTime = clamped;
   }
 }
+
+async function fetchVideoWithProgress(
+  url: string,
+  onProgress: (loaded: number) => void
+): Promise<string> {
+  const response = await fetch(url);
+  if (!response.body) throw new Error("No response body");
+  
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let loaded = 0;
+  
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value) {
+      chunks.push(value);
+      loaded += value.length;
+      onProgress(loaded);
+    }
+  }
+  
+  const blob = new Blob(chunks as any[], { type: "video/mp4" });
+  return URL.createObjectURL(blob);
+}
+
+export async function preloadVideos(
+  setBlobUrl: (which: Which, url: string) => void,
+  setLoadProgress: (p: number) => void
+) {
+  const SIZES = {
+    marvel: 3771848,
+    hero: 12042708,
+    finale: 9939153,
+  };
+  const TOTAL_SIZE = SIZES.marvel + SIZES.hero + SIZES.finale;
+
+  const loaded = {
+    marvel: 0,
+    hero: 0,
+    finale: 0,
+  };
+
+  const update = (which: Which, bytes: number) => {
+    loaded[which] = bytes;
+    const total = loaded.marvel + loaded.hero + loaded.finale;
+    const pct = Math.min(100, Math.round((total / TOTAL_SIZE) * 100));
+    setLoadProgress(pct);
+  };
+
+  const pMarvel = fetchVideoWithProgress(ASSETS.marvelVideo, (b) => update("marvel", b))
+    .then((url) => setBlobUrl("marvel", url));
+
+  const pHero = fetchVideoWithProgress(ASSETS.heroVideo, (b) => update("hero", b))
+    .then((url) => setBlobUrl("hero", url));
+
+  const pFinale = fetchVideoWithProgress(ASSETS.finaleVideo, (b) => update("finale", b))
+    .then((url) => setBlobUrl("finale", url));
+
+  await Promise.all([pMarvel, pHero, pFinale]);
+  setLoadProgress(100);
+}

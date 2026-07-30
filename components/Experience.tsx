@@ -5,10 +5,11 @@ import { gsap } from "@/lib/gsap";
 import { useLenis } from "@/lib/useLenis";
 import { useExperience } from "@/lib/store";
 import { signals } from "@/lib/signals";
-import { getVideoEl, scrubEl } from "@/lib/videos";
+import { getVideoEl, scrubEl, preloadVideos } from "@/lib/videos";
 import { VIDEO, SCROLL, TIMELINE_UNITS } from "@/lib/constants";
 
 import CinematicCanvas from "@/components/webgl/CinematicCanvas";
+import LoaderOverlay from "@/components/ui/LoaderOverlay";
 import VideoLayer from "@/components/overlays/VideoLayer";
 import CharacterOrbit from "@/components/overlays/CharacterOrbit";
 import StoryStack from "@/components/overlays/StoryStack";
@@ -66,6 +67,17 @@ export default function Experience() {
   const builtRef = useRef(false);
 
   useEffect(() => setMounted(true), []);
+
+  // Start preloading video files on mount
+  useEffect(() => {
+    const setBlobUrl = useExperience.getState().setBlobUrl;
+    const setLoadProgress = useExperience.getState().setLoadProgress;
+    preloadVideos(setBlobUrl, setLoadProgress).catch((err) => {
+      console.error("Failed to preload videos:", err);
+      // fallback in case of CORS or network error so experience is still reachable
+      useExperience.getState().setReady(true);
+    });
+  }, []);
 
   // ── pointer tracking + video decoder priming (no audio) ─────────
   useEffect(() => {
@@ -252,6 +264,7 @@ export default function Experience() {
       <HeroOverlay />
       <SiteFooter />
       <ScrollCue />
+      <LoaderOverlay />
 
       {/* invisible scroll track — the distance the scrub travels over */}
       <div className="scroll-track" ref={trackRef} aria-hidden>
