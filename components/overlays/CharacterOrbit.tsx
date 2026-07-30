@@ -82,11 +82,12 @@ export default function CharacterOrbit() {
 
   useRaf(() => {
     const s = signals.showcase;
+    const story = signals.story;
     const t = signals.time;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
-    const wantPlay = s > 0.006; // play while the section is (near) visible
+    const wantPlay = s > 0.006 && story < 0.125; // play while the section is (near) visible and not faded
     
     // Responsive adjustments for orbit size and scale
     const isMobile = vw < 640;
@@ -101,24 +102,28 @@ export default function CharacterOrbit() {
       const vid = videoRefs.current[i];
       if (vid) {
         if (wantPlay && vid.paused) vid.play().catch(() => {});
-        else if (!wantPlay && s < 0.002 && !vid.paused) vid.pause();
+        else if (!wantPlay && !vid.paused) vid.pause();
       }
 
       const card = cardRefs.current[i];
       if (!card) continue;
 
+      const theta = base + i * (TAU / N);
+      const d = Math.cos(theta); // 1 = front, -1 = behind the model
+      const depth01 = (d + 1) / 2; // 0 back .. 1 front
+
       // staggered fly-in from the right as the section rises
       const enterAt = 0.05 + i * 0.055;
       const enter = smoothstep(enterAt, enterAt + 0.16, s);
-      if (enter <= 0.001) {
+      const storyFade = clamp01(story * 8); // fade out quickly as story rises
+      const cardOpacity = lerp(0.32, 1, depth01) * enter * (1 - storyFade);
+
+      if (cardOpacity <= 0.001) {
         if (card.style.visibility !== "hidden") card.style.visibility = "hidden";
         continue;
       }
       card.style.visibility = "visible";
 
-      const theta = base + i * (TAU / N);
-      const d = Math.cos(theta); // 1 = front, -1 = behind the model
-      const depth01 = (d + 1) / 2; // 0 back .. 1 front
       const x = Math.sin(theta) * Rx;
       const y = d * Ry;
       
@@ -132,7 +137,7 @@ export default function CharacterOrbit() {
       card.style.transform =
         `translate(-50%, -50%) perspective(1100px) translate3d(${(x + enterX).toFixed(1)}px, ${y.toFixed(1)}px, 0)` +
         ` rotateY(${rotY.toFixed(2)}deg) scale(${scale.toFixed(3)})`;
-      card.style.opacity = (lerp(0.32, 1, depth01) * enter).toFixed(3);
+      card.style.opacity = cardOpacity.toFixed(3);
       // straddle the atmosphere/model canvas (z3): front over, back behind
       card.style.zIndex = d > 0 ? "4" : "2";
       // depth blur on the far cards

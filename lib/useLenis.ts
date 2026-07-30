@@ -20,6 +20,8 @@ export function useLenis() {
       wheelMultiplier: 1,
       touchMultiplier: 1.4,
       lerp: 0.1,
+      syncTouch: true,
+      syncTouchLerp: 0.075,
     });
     ref.current = lenis;
     if (process.env.NODE_ENV !== "production") {

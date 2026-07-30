@@ -173,22 +173,27 @@ export default function DoomModel() {
 
   useFrame((state, dt) => {
     const s = signals.showcase;
-    group.visible = s > 0.001;
-    if (!group.visible) return;
-    const t = signals.time;
-
-    // rise from the bottom as Section 2 enters
+    const story = signals.story;
+    
     const isMobile = state.size.width < 640;
     const isTablet = state.size.width >= 640 && state.size.width < 1024;
     const baseScale = isMobile ? 0.65 : isTablet ? 0.85 : 1.0;
     
+    // Scale and position fade out as Section 3 story panels rise
+    const storyFade = THREE.MathUtils.clamp(1 - story * 8, 0, 1);
+    
+    group.visible = s > 0.001 && story < 0.125;
+    if (!group.visible) return;
+    const t = signals.time;
+
+    // rise from the bottom as Section 2 enters
     const rise = THREE.MathUtils.smoothstep(s, 0, 0.24);
     const targetY = isMobile
       ? THREE.MathUtils.lerp(-6.2, -1.72, rise)
       : THREE.MathUtils.lerp(-6.2, -1.42, rise);
       
     group.position.y += (targetY - group.position.y) * Math.min(1, dt * 6);
-    const sc = (0.85 + rise * 0.15) * baseScale;
+    const sc = (0.85 + rise * 0.15) * baseScale * storyFade;
     group.scale.setScalar(sc);
 
     // idle: breathing + a slight turn toward the cursor + slow sway + a subtle
